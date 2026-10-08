@@ -1,0 +1,8 @@
+# Single-task ACT evaluation on one GPU.
+gpu_ids: "1"
+jobs_per_gpu: 1
+num_workers: 1
+enable_remote: false
+
+tasks:
+  - place_bread_basket
