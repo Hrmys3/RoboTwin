@@ -95,3 +95,16 @@ python -m scripts.vpc_vision_probe --seeds 0 2
 ```
 
 这两个初始场景中，头部相机都看见两块面包与篮子：种子 0 的像素数分别为 990、812、5846；种子 2 为 1449、1439、6912。前置相机每组只看见一块面包（另一块在图像外）；两个腕部相机此时都未拍到目标，真实中心投影也在图像范围外。故下一步先以头部 RGB 建立检测/定位基线，再用前置图像辅助分析遮挡；腕部相机可以留待接近与抓取阶段重检。两组结果不足以估计整体可见率，需要扩展种子和阶段。
+
+## 分阶段可见性与检测标注
+
+同一探针可在零位姿扰动的专家流程中，于指定高层动作**结束后**抓拍。每帧分别保存 RGB PNG、深度与原始 actor ID 的 NPZ、相机内外参和 `report.json`；其中 `plan_success_so_far` 标记该阶段规划是否仍成功，`episode_outcome.json` 记录整回合结果。输出根目录的 `annotations.jsonl` 每行对应一张图，包含 `seed`、`stage`、`camera`、图像相对路径，以及可见物体的 `bread`/`basket` 类别、实例名和 `bbox_xywh`。这里的框是从原始 actor ID 图生成的**可见部分**外接框：遮挡或出画会截断它；没有可见像素的目标不生成框。标注文件用于离线训练和评估，模型推理时不会读取 actor ID。再次运行同一输出目录会重写 `annotations.jsonl`。
+
+```bash
+conda activate RoboTwin
+python -m scripts.vpc_vision_probe --seeds 0 2 \
+  --capture-stages dual_grasp dual_lift left_place \
+  --output-dir vpc_results/vision_stages_0_2
+```
+
+两个种子的 4 个时间点、4 台相机，共导出 32 张图及对应标注。逐项复核 8 个场景快照的保存标签图与报告像素数完全一致，标注路径与框尺寸也通过检查。两回合的 `plan_success`、`task_success` 和 `joints_legal` 均为真；这只是数据质量检查，不是视觉策略成功率。初始时双腕相机均看不到目标；`dual_grasp` 与 `dual_lift` 之后，各腕部相机可看到对应抓取的面包；`left_place` 之后左腕相机还能看到篮子。头部相机在这 8 个快照中均看到两块面包与篮子。该观察只覆盖两个专家回合，不能推断任务各阶段的总体可见率，也不代表已训练检测器。下一步应扩展种子并按**种子**划分训练/验证集，避免同一场景的相邻阶段同时落入两组而高估泛化。

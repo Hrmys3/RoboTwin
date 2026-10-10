@@ -1,0 +1,9 @@
+{
+  "seed": 2,
+  "branch": "opposite_sides",
+  "plan_success": true,
+  "task_success": true,
+  "joints_legal": true,
+  "joint_excess_rad": 0.0,
+  "success": true
+}
