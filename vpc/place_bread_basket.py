@@ -20,9 +20,11 @@ def execute(task, provider, on_stage=None):
             on_stage(stage)
 
     def place_one(index, first):
+        provider.set_phase("grasp")
         arm = ArmTag("right" if breads[index].get_pose().p[0] > 0 else "left")
         move(f"bread_{index}_grasp", task.grasp_actor(breads[index], arm_tag=arm, pre_grasp_dis=0.07))
         move(f"bread_{index}_lift", task.move_by_displacement(arm_tag=arm, z=0.1, move_axis="arm"))
+        provider.set_phase("place")
         target = basket.get_functional_point(0)
         move(f"bread_{index}_place", task.place_actor(breads[index], arm_tag=arm,
                                                      target_pose=target, constrain="free", pre_dis=0.12))
@@ -50,6 +52,7 @@ def execute(task, provider, on_stage=None):
         task.move_by_displacement(arm_tag="left", z=0.05, move_axis="arm"),
         task.move_by_displacement(arm_tag="right", z=0.05, move_axis="arm"),
     )
+    provider.set_phase("place")
     target = basket.get_functional_point(0)
     move("left_place", task.place_actor(breads[left], arm_tag="left", target_pose=target,
                                         constrain="free", pre_dis=0.13))

@@ -61,6 +61,16 @@ class EstimatedActor(Actor):
     def __init__(self, actor: Actor, position_bias):
         self.actor = _BiasedEntity(actor.actor, position_bias)
         self.config = actor.config
+        self._configured_position_error = np.asarray(position_bias, dtype=float).copy()
+
+    def set_error_active(self, active: bool):
+        self.actor._position_bias = (
+            self._configured_position_error.copy() if active else np.zeros(3)
+        )
+
+    @property
+    def configured_position_error_m(self) -> tuple[float, ...]:
+        return tuple(float(v) for v in self._configured_position_error)
 
     @property
     def position_error_m(self) -> tuple[float, ...]:
@@ -70,11 +80,14 @@ class EstimatedActor(Actor):
 class OracleSceneProvider:
     """Read privileged poses; optionally apply fixed per-object position errors."""
 
-    def __init__(self, task, position_sigma_m: float, seed: int, noise_target: str = "all"):
+    def __init__(self, task, position_sigma_m: float, seed: int,
+                 noise_target: str = "all", noise_phase: str = "all"):
         if position_sigma_m < 0:
             raise ValueError("position_sigma_m must be nonnegative")
         if noise_target not in {"all", "bread", "basket", "none"}:
             raise ValueError(f"invalid noise_target: {noise_target}")
+        if noise_phase not in {"all", "grasp", "place", "none"}:
+            raise ValueError(f"invalid noise_phase: {noise_phase}")
         rng = np.random.default_rng(seed)
         # Draw every object's noise in every condition to keep trials paired.
         bread_errors = [rng.normal(0, position_sigma_m, 3) for _ in task.bread]
@@ -88,6 +101,17 @@ class OracleSceneProvider:
             basket_error if noise_target in {"all", "basket"} else np.zeros(3),
         )
         self.task = task
+        self.noise_phase = noise_phase
+        self.current_phase = "grasp"
+        self.set_phase("grasp")
+
+    def set_phase(self, phase: str):
+        if phase not in {"grasp", "place"}:
+            raise ValueError(f"invalid phase: {phase}")
+        self.current_phase = phase
+        active = self.noise_phase in {"all", phase}
+        for actor in (*self.breads, self.basket):
+            actor.set_error_active(active)
 
     def estimate(self) -> SceneEstimate:
         return SceneEstimate(

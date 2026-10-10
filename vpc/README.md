@@ -27,4 +27,21 @@ python -m scripts.vpc_oracle --seeds 2 --sigmas-mm 5 --noise-targets all bread b
 python -m scripts.vpc_oracle --seeds 0 --sigmas-mm 10 --noise-targets all bread basket none --output vpc_results/seed0_10mm_ablation.jsonl
 ```
 
-种子 2、5 mm：只有 `all` 失败；其 `left_place` 阶段结束时篮子已漂移约 537 mm，`bread` 和 `basket` 两个单独扰动条件都成功。可定位到左臂放置阶段，但该阶段内部首次接触仍未记录。种子 0、10 mm：`all` 和 `bread` 失败；双臂抬起后，面包 0 的高度仍约 0.741 m，`basket` 和 `none` 条件则将它抬至约 0.789 m。这表明面包位姿误差在该场景中导致抓取未带起面包。两例对应不同失效机制，不能据此估计整体失效率或泛化到其他种子。
+早期单回合检查中，种子 2、5 mm 的 `all` 条件失败，`left_place` 阶段结束时篮子已漂移约 537 mm；当时的 `bread` 和 `basket` 两个单独扰动条件都成功。种子 0、10 mm 的 `all` 和 `bread` 条件失败；双臂抬起后，面包 0 的高度仍约 0.741 m，`basket` 和 `none` 条件则将它抬至约 0.789 m。这些是具体回合的观察，重复实验发现同一条件也可能有不同结果，不能当作稳定成功率或确定因果结论。
+
+## 阶段选择性扰动与重复性
+
+`--noise-phases` 支持 `all`、`grasp`、`place`、`none`。`grasp` 只在选臂和抓取规划时应用位姿偏差；进入放置规划前恢复真值。`place` 在抓取时使用真值，进入放置规划前应用偏差。同侧双面包分支会在第二块面包抓取前重新切回抓取阶段。这种切换模拟理想的阶段边界重定位，用来诊断误差作用时机，不表示真实视觉系统具备瞬间恢复真值的能力。
+
+`--repeats N` 在相同任务种子、误差向量和配置下重复运行 N 次，结果中记录 `repeat_index`。重复间轮换阶段条件的执行顺序，以减轻固定条件顺序造成的偏差。运行器不改变原专家路径或仿真器的随机性设置；即使输入相同，物理接触和运动规划结果仍可能不同。因此单次成功/失败不能当作稳定的因果结论，应同时报告重复次数与结果。`stages[].stage_index` 是高层动作阶段序号，并非物理仿真步数。
+
+```bash
+conda activate RoboTwin
+python -m scripts.vpc_oracle --seeds 2 --sigmas-mm 5 --noise-targets all --noise-phases all grasp place none --repeats 3 --output vpc_results/seed2_5mm_phase_repeats.jsonl
+```
+
+种子 2、5 mm 的一次交错顺序实验中，`all`、`grasp`、`place`、`none` 分别成功 0/3、3/3、1/3、3/3。`all` 三个回合在 `left_place` 结束时篮子水平漂移分别约 201、500、88 mm；`place` 两个失败回合在同一阶段漂移约 69、97 mm。这支持放置阶段位姿误差与篮子失稳有关，但三次重复仍不足以估计稳定的失败概率。
+
+种子 0、10 mm 且只扰动面包时，`all`、`grasp`、`place`、`none` 分别成功 0/3、0/3、3/3、3/3。`all` 和 `grasp` 的三个回合在 `dual_lift` 后，面包 0 均留在约 0.741 m；`place` 和 `none` 均抬至约 0.789 m。这较直接地定位了该场景的抓取失效。
+
+重复性审计还发现：在同一种子 2、5 mm、`all` 条件下，另一次连续三回合运行得到 2/3 成功，和上述交错实验的 0/3 不同。初始物体位姿及注入误差相同，但执行结果并非严格确定；目前未查明波动来自运动规划、物理接触还是其他运行时因素。后续统计必须增加重复次数，避免用单回合结果定义误差阈值。
