@@ -69,3 +69,14 @@ python -m scripts.vpc_replay --seed 0 --sigma-mm 0 --noise-target all --noise-ph
 ```
 
 种子 2 的三次独立规划审计中，初始关节状态与 `dual_grasp` 目标动作完全相同，但该阶段首段关节路径长度与 SHA-256 摘要不同；三次回合一成两败。因此，路径差异已在抓取规划阶段出现，早于放置接触。固定其中一条失败路径后，基准回合与三次重放均失败，所有阶段的面包和篮子位置逐项完全相同。种子 0 的零误差成功路径也在两次重放中成功，阶段位置逐项相同。这支持“规划输出变化是当前重复性问题的重要上游来源”；尚未证明规划器内部哪一环节产生差异，也不能以有限重放证明物理仿真在所有情况下严格确定。
+
+## cuRobo 采样器重置实验
+
+`--reset-planner-before-plan` 是默认关闭的诊断开关。开启时，左右臂每次调用 cuRobo 单目标或批量规划前，分别调用对应 `MotionGen.reset(reset_seed=True)`。双臂规划器位于独立子进程，开关通过已有管道发送。此操作重置 cuRobo 的内部采样器，不保证 GPU 内核、优化器或仿真全链条确定性；也可能改变路径选择，不能视为性能提升。JSONL 中的 `reset_planner_before_plan` 记录是否开启。
+
+```bash
+conda activate RoboTwin
+python -m scripts.vpc_oracle --seeds 2 --sigmas-mm 5 --noise-targets all --noise-phases all --repeats 3 --trace-stages dual_grasp left_place --reset-planner-before-plan --output vpc_results/seed2_reset_planner_audit.jsonl
+```
+
+该条件下三次初始物体位姿、`dual_grasp` 初始关节状态和目标动作逐项一致；三次均规划成功但任务失败。右臂首段路径摘要三次相同，左臂第一次与后两次不同，后两次相同。左臂首次路径步数都为 431，但轨迹数据不同；第一次在 `left_place` 后篮子水平漂移约 86 mm，后两次约 425 mm。说明仅重置采样器仍未消除全部路径/执行波动。样本量只有三次，不能由 0/3 推断真实成功率；后续需进一步隔离 GPU 求解差异与规划调用顺序，并在固定路径条件下评估控制。

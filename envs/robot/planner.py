@@ -89,6 +89,7 @@ try:
             )
             self.motion_gen_batch = MotionGen(motion_gen_config)
             self.motion_gen_batch.warmup(batch=CONFIGS.ROTATE_NUM)
+            self.reset_before_plan = False
 
         def plan_path(
             self,
@@ -140,6 +141,8 @@ try:
                 )
                 plan_config.pose_cost_metric = pose_cost_metric
 
+            if self.reset_before_plan:
+                self.motion_gen.reset(reset_seed=True)
             result = self.motion_gen.plan_single(start_joint_states, goal_pose_of_ee, plan_config)
 
             # output
@@ -226,6 +229,8 @@ try:
                 plan_config.pose_cost_metric = pose_cost_metric
 
             try:
+                if self.reset_before_plan:
+                    self.motion_gen_batch.reset(reset_seed=True)
                 result = self.motion_gen_batch.plan_batch(start_joint_states, goal_pose_of_ee, plan_config)
             except Exception as e:
                 return {"status": ["Failure" for i in range(10)]}

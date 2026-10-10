@@ -352,6 +352,18 @@ class Robot:
         else:
             return self.right_planner.plan_grippers(now_val, target_val)
 
+    def set_planner_reset_before_plan(self, enabled):
+        """Opt-in cuRobo reset for repeatability experiments."""
+        if self.communication_flag:
+            for conn in (self.left_conn, self.right_conn):
+                conn.send({"cmd": "set_reset_before_plan", "enabled": bool(enabled)})
+                reply = conn.recv()
+                if reply != "ok":
+                    raise RuntimeError(f"Planner reset configuration failed: {reply}")
+        else:
+            self.left_planner.reset_before_plan = bool(enabled)
+            self.right_planner.reset_before_plan = bool(enabled)
+
     def left_plan_multi_path(
         self,
         target_lst,
@@ -699,6 +711,10 @@ def planner_process_worker(conn, args):
 
             elif msg["cmd"] == "reset":
                 planner.motion_gen.reset(reset_seed=True)
+                conn.send("ok")
+
+            elif msg["cmd"] == "set_reset_before_plan":
+                planner.reset_before_plan = bool(msg["enabled"])
                 conn.send("ok")
 
             elif msg["cmd"] == "exit":

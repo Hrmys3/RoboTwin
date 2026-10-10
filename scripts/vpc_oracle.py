@@ -45,13 +45,17 @@ def load_config():
 
 
 def trial(config, seed, sigma_mm, noise_target="all", noise_phase="all",
-          repeat_index=0, trace_stages=(), trace_stride=25):
+          repeat_index=0, trace_stages=(), trace_stride=25,
+          reset_planner_before_plan=False):
     task = place_bread_basket()
     result = {"seed": seed, "sigma_mm": sigma_mm, "noise_target": noise_target,
               "noise_phase": noise_phase, "repeat_index": repeat_index,
+              "reset_planner_before_plan": reset_planner_before_plan,
               "success": False, "stages": []}
     try:
         task.setup_demo(seed=seed, now_ep_num=0, **config)
+        if reset_planner_before_plan:
+            task.robot.set_planner_reset_before_plan(True)
         provider = OracleSceneProvider(task, sigma_mm / 1000, seed + 1000003,
                                        noise_target=noise_target, noise_phase=noise_phase)
         initial_scene = provider.estimate()
@@ -138,6 +142,8 @@ def main():
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--trace-stages", nargs="+", default=[])
     parser.add_argument("--trace-stride", type=int, default=25)
+    parser.add_argument("--reset-planner-before-plan", action="store_true",
+                        help="Reset cuRobo internal samplers before every planning call")
     parser.add_argument("--output", type=Path, default=ROOT / "vpc_results" / "oracle.jsonl")
     args = parser.parse_args()
     if any(value < 0 for value in args.sigmas_mm):
@@ -158,7 +164,8 @@ def main():
                         for noise_phase in phase_order:
                             result = trial(config, seed, sigma_mm, noise_target,
                                            noise_phase, repeat_index,
-                                           args.trace_stages, args.trace_stride)
+                                           args.trace_stages, args.trace_stride,
+                                           args.reset_planner_before_plan)
                             line = json.dumps(result, ensure_ascii=False)
                             print(
                                 json.dumps({key: result.get(key) for key in
