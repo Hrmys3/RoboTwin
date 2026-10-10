@@ -1,0 +1,49 @@
+{
+  "camera": "head_camera",
+  "sources": [
+    "/home/catlab/RoboTwin/vpc_results/vision_stages_0_2",
+    "/home/catlab/RoboTwin/vpc_results/vision_initial_3_5_7_9"
+  ],
+  "train": {
+    "images": 7,
+    "seeds": [
+      0,
+      3,
+      5,
+      7
+    ],
+    "stages": {
+      "dual_grasp": 1,
+      "dual_lift": 1,
+      "initial": 4,
+      "left_place": 1
+    },
+    "objects": {
+      "basket": 7,
+      "bread": 14
+    },
+    "images_with_two_breads_and_basket": 7,
+    "images_with_one_bread_in_scene": 0,
+    "unseen_bread_instances": 0
+  },
+  "val": {
+    "images": 5,
+    "seeds": [
+      2,
+      9
+    ],
+    "stages": {
+      "dual_grasp": 1,
+      "dual_lift": 1,
+      "initial": 2,
+      "left_place": 1
+    },
+    "objects": {
+      "basket": 5,
+      "bread": 9
+    },
+    "images_with_two_breads_and_basket": 4,
+    "images_with_one_bread_in_scene": 1,
+    "unseen_bread_instances": 0
+  }
+}

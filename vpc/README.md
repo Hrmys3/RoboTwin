@@ -108,3 +108,19 @@ python -m scripts.vpc_vision_probe --seeds 0 2 \
 ```
 
 两个种子的 4 个时间点、4 台相机，共导出 32 张图及对应标注。逐项复核 8 个场景快照的保存标签图与报告像素数完全一致，标注路径与框尺寸也通过检查。两回合的 `plan_success`、`task_success` 和 `joints_legal` 均为真；这只是数据质量检查，不是视觉策略成功率。初始时双腕相机均看不到目标；`dual_grasp` 与 `dual_lift` 之后，各腕部相机可看到对应抓取的面包；`left_place` 之后左腕相机还能看到篮子。头部相机在这 8 个快照中均看到两块面包与篮子。该观察只覆盖两个专家回合，不能推断任务各阶段的总体可见率，也不代表已训练检测器。下一步应扩展种子并按**种子**划分训练/验证集，避免同一场景的相邻阶段同时落入两组而高估泛化。
+
+## 按任务种子划分头部 RGB 数据
+
+用同一探针补充种子 3、5、7、9 的初始画面，再用 `scripts/vpc_vision_manifest.py` 合并来源并按种子划分训练/验证集。清单生成器检查图像与阶段报告存在、类别和检测框合法、标注像素数与报告一致、同一 `(seed, stage, camera)` 不重复，并拒绝不存在的验证种子。输出 JSONL 中图像路径为本工作空间的绝对路径；移动数据后需要重新生成清单。`scene_bread_count` 是实际生成的面包数，`unseen_bread_count` 是生成后未在该图出现的面包数，因此可区分场景生成失败和相机漏检。
+
+```bash
+conda activate RoboTwin
+python -m scripts.vpc_vision_probe --seeds 3 5 7 9 \
+  --output-dir vpc_results/vision_initial_3_5_7_9
+python -m scripts.vpc_vision_manifest \
+  --sources vpc_results/vision_stages_0_2 vpc_results/vision_initial_3_5_7_9 \
+  --val-seeds 2 9 --camera head_camera \
+  --output-dir vpc_results/vision_head_split
+```
+
+当前头部相机训练清单为种子 0、3、5、7 的 7 张图，验证清单为种子 2、9 的 5 张图，种子集合无交集。种子 9 的任务场景只生成了一块面包，不能将第二块面包缺失归因于视觉遮挡；其余 11 张图各有两块面包与篮子。训练集有 14 个面包框、7 个篮子框；验证集有 9 个面包框、5 个篮子框。此规模只证明数据管线和分组逻辑可用，不能支持可靠的泛化结论。下一步应扩大种子及阶段覆盖，并检查各类面包模型、尺寸、位置、遮挡和光照的分布，再训练并评估 RGB 检测器。
