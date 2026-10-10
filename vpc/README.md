@@ -124,3 +124,25 @@ python -m scripts.vpc_vision_manifest \
 ```
 
 当前头部相机训练清单为种子 0、3、5、7 的 7 张图，验证清单为种子 2、9 的 5 张图，种子集合无交集。种子 9 的任务场景只生成了一块面包，不能将第二块面包缺失归因于视觉遮挡；其余 11 张图各有两块面包与篮子。训练集有 14 个面包框、7 个篮子框；验证集有 9 个面包框、5 个篮子框。此规模只证明数据管线和分组逻辑可用，不能支持可靠的泛化结论。下一步应扩大种子及阶段覆盖，并检查各类面包模型、尺寸、位置、遮挡和光照的分布，再训练并评估 RGB 检测器。
+
+## 头部 RGB 小型分割基线
+
+补充种子 10–19 的初始视角，合并三个数据源后按种子重新划分。训练集有 11 个种子、14 张图，验证集有 5 个种子、8 张图；训练集 27 个面包、14 个篮子标注，验证集 15 个面包、8 个篮子标注。种子 9、11 各只生成了一块面包，所有实际生成的面包在对应头部相机画面中均有标注。此数据仍严重偏小，尤其操作阶段每侧只有一个种子，以下仅是接口和学习能力实验。
+
+`scripts/vpc_vision_train.py` 只把 RGB 输入一个小型 U-Net，使用同目录的原始 actor ID 图生成离线语义标签（背景、面包、篮子）。模型在 160×120 像素下学习，输出像素类别；通过连通域将预测面包/篮子区域转换为检测框。评价报告像素 IoU 与检测框 IoU≥0.5 的 TP/FP/FN、精确率和召回率。两次 60 轮对照固定相同数据划分、网络、随机种子和训练长度，只改变是否加入前景 Dice 损失；未依照验证结果选择 checkpoint。20 轮纯加权交叉熵先验实验完全漏检面包，促使我们检查训练时长和前景损失。
+
+```bash
+conda activate RoboTwin
+python -m scripts.vpc_vision_probe --seeds 10 11 12 13 14 15 16 17 18 19 \
+  --output-dir vpc_results/vision_initial_10_19
+python -m scripts.vpc_vision_manifest \
+  --sources vpc_results/vision_stages_0_2 vpc_results/vision_initial_3_5_7_9 vpc_results/vision_initial_10_19 \
+  --val-seeds 2 9 12 15 18 --camera head_camera \
+  --output-dir vpc_results/vision_head_split_v2
+python -m scripts.vpc_vision_train --manifest-dir vpc_results/vision_head_split_v2 \
+  --epochs 60 --dice-weight 0 --output-dir vpc_results/vision_head_rgb_ce60
+python -m scripts.vpc_vision_train --manifest-dir vpc_results/vision_head_split_v2 \
+  --epochs 60 --dice-weight 1 --output-dir vpc_results/vision_head_rgb_dice
+```
+
+验证结果：纯加权交叉熵的面包/篮子像素 IoU 为 0.630/0.882；加入 Dice 后为 0.837/0.926。对应面包框 TP/FP/FN 从 13/10/2 变为 12/6/3：Dice 减少误报但多漏检一块，不能仅凭像素 IoU 说检测全面改善。篮子框分别为 7/1/1 与 7/4/1。两种训练的 checkpoint、指标 JSON 和验证预测掩码都已保存。训练样本少、仿真外观单一、分辨率降采样，且验证集参与了本轮探索，不能将数值视为真实泛化性能。下一步需扩大独立种子与阶段样本，并保留最终未参与调参的测试种子；随后研究从像素/深度得到世界坐标位姿的几何误差。

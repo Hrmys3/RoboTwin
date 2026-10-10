@@ -1,0 +1,412 @@
+{
+  "seed": 15,
+  "stage": "initial",
+  "plan_success_so_far": true,
+  "cameras": {
+    "head_camera": {
+      "image_hw": [
+        240,
+        320
+      ],
+      "rgb_file": "head_camera_rgb.png",
+      "geometry_file": "head_camera_geometry.npz",
+      "intrinsic_cv": [
+        [
+          358.6421813964844,
+          0.0,
+          160.0
+        ],
+        [
+          0.0,
+          358.6421813964844,
+          120.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "extrinsic_cv": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.03200000524520874
+        ],
+        [
+          0.0,
+          -0.800000011920929,
+          -0.6000000238418579,
+          0.44999998807907104
+        ],
+        [
+          0.0,
+          0.6000000238418579,
+          -0.800000011920929,
+          1.350000023841858
+        ]
+      ],
+      "objects": {
+        "bread_0": {
+          "actor_id": 69,
+          "pixel_count": 971,
+          "bbox_xyxy": [
+            291,
+            156,
+            319,
+            194
+          ],
+          "depth_median_m": 0.658620297908783,
+          "world_center_xyz": [
+            0.25002002716064453,
+            -0.1315823197364807,
+            0.7404320240020752
+          ],
+          "projected_center_uv": [
+            309.0253932049713,
+            178.65825936735462
+          ],
+          "center_inside_image": true
+        },
+        "bread_1": {
+          "actor_id": 70,
+          "pixel_count": 916,
+          "bbox_xyxy": [
+            44,
+            111,
+            82,
+            148
+          ],
+          "depth_median_m": 0.7091134786605835,
+          "world_center_xyz": [
+            -0.22769908607006073,
+            -0.02608404867351055,
+            0.7406545877456665
+          ],
+          "projected_center_uv": [
+            65.38757971908464,
+            132.7993061796552
+          ],
+          "center_inside_image": true
+        },
+        "basket": {
+          "actor_id": 68,
+          "pixel_count": 8407,
+          "bbox_xyxy": [
+            114,
+            155,
+            239,
+            239
+          ],
+          "depth_median_m": 0.6283355355262756,
+          "world_center_xyz": [
+            -2.826782292686403e-07,
+            -0.19999970495700836,
+            0.7417178750038147
+          ],
+          "projected_center_uv": [
+            178.02699283090902,
+            212.93503047665365
+          ],
+          "center_inside_image": true
+        }
+      }
+    },
+    "front_camera": {
+      "image_hw": [
+        240,
+        320
+      ],
+      "rgb_file": "front_camera_rgb.png",
+      "geometry_file": "front_camera_geometry.npz",
+      "intrinsic_cv": [
+        [
+          358.6421813964844,
+          0.0,
+          160.0
+        ],
+        [
+          0.0,
+          358.6421813964844,
+          120.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "extrinsic_cv": [
+        [
+          1.0000001192092896,
+          1.1920928955078125e-07,
+          -3.725290298461914e-09,
+          5.960464477539063e-08
+        ],
+        [
+          3.725290298461914e-09,
+          -0.09950372576713562,
+          -0.9950371980667114,
+          0.8010050058364868
+        ],
+        [
+          -1.1920928955078125e-07,
+          0.9950372576713562,
+          -0.09950372576713562,
+          0.5323449373245239
+        ]
+      ],
+      "objects": {
+        "bread_0": {
+          "actor_id": 69,
+          "pixel_count": 0,
+          "bbox_xyxy": null,
+          "depth_median_m": null,
+          "world_center_xyz": [
+            0.25002002716064453,
+            -0.1315823197364807,
+            0.7404320240020752
+          ],
+          "projected_center_uv": [
+            433.59429399377007,
+            204.63290838645028
+          ],
+          "center_inside_image": false
+        },
+        "bread_1": {
+          "actor_id": 70,
+          "pixel_count": 57,
+          "bbox_xyxy": [
+            0,
+            147,
+            7,
+            158
+          ],
+          "depth_median_m": 0.4483487010002136,
+          "world_center_xyz": [
+            -0.22769908607006073,
+            -0.02608404867351055,
+            0.7406545877456665
+          ],
+          "projected_center_uv": [
+            -28.73100977546718,
+            175.2200862640101
+          ],
+          "center_inside_image": false
+        },
+        "basket": {
+          "actor_id": 68,
+          "pixel_count": 29499,
+          "bbox_xyxy": [
+            0,
+            135,
+            315,
+            239
+          ],
+          "depth_median_m": 0.2050037831068039,
+          "world_center_xyz": [
+            -2.826782292686403e-07,
+            -0.19999970495700836,
+            0.7417178750038147
+          ],
+          "projected_center_uv": [
+            159.99965497687546,
+            234.51391158794576
+          ],
+          "center_inside_image": true
+        }
+      }
+    },
+    "left_camera": {
+      "image_hw": [
+        240,
+        320
+      ],
+      "rgb_file": "left_camera_rgb.png",
+      "geometry_file": "left_camera_geometry.npz",
+      "intrinsic_cv": [
+        [
+          358.6421813964844,
+          0.0,
+          160.0
+        ],
+        [
+          0.0,
+          358.6421813964844,
+          120.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "extrinsic_cv": [
+        [
+          0.9998000264167786,
+          0.01999807357788086,
+          1.5348196029663086e-05,
+          0.33612513542175293
+        ],
+        [
+          0.007801800966262817,
+          -0.3893445134162903,
+          -0.9210591912269592,
+          0.8349113464355469
+        ],
+        [
+          -0.018413424491882324,
+          0.9208751320838928,
+          -0.3894226551055908,
+          0.6111619472503662
+        ]
+      ],
+      "objects": {
+        "bread_0": {
+          "actor_id": 69,
+          "pixel_count": 0,
+          "bbox_xyxy": null,
+          "depth_median_m": null,
+          "world_center_xyz": [
+            0.25002002716064453,
+            -0.1315823197364807,
+            0.7404320240020752
+          ],
+          "projected_center_uv": [
+            1221.9776277551673,
+            495.1408559466147
+          ],
+          "center_inside_image": false
+        },
+        "bread_1": {
+          "actor_id": 70,
+          "pixel_count": 0,
+          "bbox_xyxy": null,
+          "depth_median_m": null,
+          "world_center_xyz": [
+            -0.22769908607006073,
+            -0.02608404867351055,
+            0.7406545877456665
+          ],
+          "projected_center_uv": [
+            287.8263754190271,
+            310.7472146217339
+          ],
+          "center_inside_image": false
+        },
+        "basket": {
+          "actor_id": 68,
+          "pixel_count": 0,
+          "bbox_xyxy": null,
+          "depth_median_m": null,
+          "world_center_xyz": [
+            -2.826782292686403e-07,
+            -0.19999970495700836,
+            0.7417178750038147
+          ],
+          "projected_center_uv": [
+            1022.2665586459495,
+            716.1056799535944
+          ],
+          "center_inside_image": false
+        }
+      }
+    },
+    "right_camera": {
+      "image_hw": [
+        240,
+        320
+      ],
+      "rgb_file": "right_camera_rgb.png",
+      "geometry_file": "right_camera_geometry.npz",
+      "intrinsic_cv": [
+        [
+          358.6421813964844,
+          0.0,
+          160.0
+        ],
+        [
+          0.0,
+          358.6421813964844,
+          120.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "extrinsic_cv": [
+        [
+          0.9999501705169678,
+          0.009999632835388184,
+          1.531839370727539e-05,
+          -0.2713044285774231
+        ],
+        [
+          0.003908112645149231,
+          -0.3894031047821045,
+          -0.9210591316223145,
+          0.8308407664299011
+        ],
+        [
+          -0.009204268455505371,
+          0.921013355255127,
+          -0.3894227147102356,
+          0.6181972026824951
+        ]
+      ],
+      "objects": {
+        "bread_0": {
+          "actor_id": 69,
+          "pixel_count": 0,
+          "bbox_xyxy": null,
+          "depth_median_m": null,
+          "world_center_xyz": [
+            0.25002002716064453,
+            -0.1315823197364807,
+            0.7404320240020752
+          ],
+          "projected_center_uv": [
+            120.72132252381456,
+            469.4468581080559
+          ],
+          "center_inside_image": false
+        },
+        "bread_1": {
+          "actor_id": 70,
+          "pixel_count": 0,
+          "bbox_xyxy": null,
+          "depth_median_m": null,
+          "world_center_xyz": [
+            -0.22769908607006073,
+            -0.02608404867351055,
+            0.7406545877456665
+          ],
+          "projected_center_uv": [
+            -421.62755514027674,
+            303.98195551940444
+          ],
+          "center_inside_image": false
+        },
+        "basket": {
+          "actor_id": 68,
+          "pixel_count": 0,
+          "bbox_xyxy": null,
+          "depth_median_m": null,
+          "world_center_xyz": [
+            -2.826782292686403e-07,
+            -0.19999970495700836,
+            0.7417178750038147
+          ],
+          "projected_center_uv": [
+            -515.2494521108191,
+            677.2989669035638
+          ],
+          "center_inside_image": false
+        }
+      }
+    }
+  }
+}
