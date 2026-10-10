@@ -19,7 +19,7 @@ python -m scripts.vpc_oracle --seeds 0 2 3 --sigmas-mm 0 5 10 20 --output vpc_re
 
 ## 分对象扰动和阶段日志
 
-`--noise-targets` 支持 `all`、`bread`、`basket`、`none`。相同任务种子和标准差下，四组先采样相同的面包与篮子误差向量，再将未选择的对象误差置零，因此对照保持配对。`none` 是同场景真值参照。`stages` 在每组高层动作**结束后**记录真实物体位置、篮子水平漂移、面包到篮子中心的水平距离、机械臂末端位姿、夹爪状态、规划标志和动作计数；这不是逐仿真帧的接触日志。
+`--noise-targets` 支持 `all`、`bread`、`basket`、`none`。相同任务种子和标准差下，四组先采样相同的面包与篮子误差向量，再将未选择的对象误差置零，因此对照保持配对。`none` 是同场景真值参照。`stages` 在每组高层动作**结束后**记录真实物体位置、篮子水平漂移、面包到篮子中心的水平距离、机械臂末端位姿、夹爪状态、规划标志和阶段序号；这不是逐仿真帧的接触日志。
 
 ```bash
 conda activate RoboTwin
@@ -45,3 +45,27 @@ python -m scripts.vpc_oracle --seeds 2 --sigmas-mm 5 --noise-targets all --noise
 种子 0、10 mm 且只扰动面包时，`all`、`grasp`、`place`、`none` 分别成功 0/3、0/3、3/3、3/3。`all` 和 `grasp` 的三个回合在 `dual_lift` 后，面包 0 均留在约 0.741 m；`place` 和 `none` 均抬至约 0.789 m。这较直接地定位了该场景的抓取失效。
 
 重复性审计还发现：在同一种子 2、5 mm、`all` 条件下，另一次连续三回合运行得到 2/3 成功，和上述交错实验的 0/3 不同。初始物体位姿及注入误差相同，但执行结果并非严格确定；目前未查明波动来自运动规划、物理接触还是其他运行时因素。后续统计必须增加重复次数，避免用单回合结果定义误差阈值。
+
+## 动作内接触与路径追踪
+
+可选的 `--trace-stages` 只在指定动作阶段逐仿真步读取状态；默认关闭。`--trace-stride` 指定位置轨迹采样间隔，接触类别、面包首次抬高 20 mm 和篮子相对阶段起点首次偏移 5/10/50/100 mm 的事件仍逐步检查。`step_trace` 保存每阶段的目标动作、起始关节状态、规划关节路径长度及 SHA-256 摘要、首次接触事件和稀疏物体/末端轨迹。接触来自 SAPIEN 的接触流形，记录“首次检测到该类别”，并非接触力或完整的接触持续时间；两个同名面包按每场景实体 ID 区分。
+
+```bash
+conda activate RoboTwin
+python -m scripts.vpc_oracle --seeds 0 --sigmas-mm 10 --noise-targets bread --noise-phases grasp none --trace-stages dual_grasp dual_lift --trace-stride 25 --output vpc_results/seed0_contact_trace.jsonl
+python -m scripts.vpc_oracle --seeds 2 --sigmas-mm 5 --noise-targets all --noise-phases all place --repeats 3 --trace-stages left_place --trace-stride 10 --output vpc_results/seed2_place_contact_trace.jsonl
+```
+
+种子 0 的逐步对照中，误差抓取的 `dual_lift` 只检测到一块面包抬高 20 mm，真值抓取则检测到两块；阶段结束时前者的一块面包仍在约 0.741 m，后者两块都在约 0.789 m。种子 2 的六个放置追踪回合中，失败回合在 `left_place` 内记录到面包—篮子、篮子—夹爪/机械臂接触，随后篮子位移越过 50 mm；成功回合也发生这些接触，但篮子位移未越过 10 mm。因此不能仅凭“是否接触”判定失败，仍需分析轨迹、接触几何或力。
+
+## 固定关节轨迹重放
+
+`scripts/vpc_replay.py` 先正常规划一次，复制左右臂的关节路径，然后在相同任务种子下以 `need_plan=False` 重放这些路径。脚本检查左右臂的路径摘要和消费数量，并记录每个高层阶段结束时的真实物体位置。它用于区分“规划器给出了不同路径”和“相同路径执行后产生不同物理结果”。重放时仍使用原有夹爪动作序列，但不重新计算抓取/放置目标位姿。
+
+```bash
+conda activate RoboTwin
+python -m scripts.vpc_replay --seed 2 --sigma-mm 5 --noise-target all --noise-phase all --replays 3 --output vpc_results/seed2_fixed_plan_replay.jsonl
+python -m scripts.vpc_replay --seed 0 --sigma-mm 0 --noise-target all --noise-phase all --replays 2 --output vpc_results/seed0_success_plan_replay.jsonl
+```
+
+种子 2 的三次独立规划审计中，初始关节状态与 `dual_grasp` 目标动作完全相同，但该阶段首段关节路径长度与 SHA-256 摘要不同；三次回合一成两败。因此，路径差异已在抓取规划阶段出现，早于放置接触。固定其中一条失败路径后，基准回合与三次重放均失败，所有阶段的面包和篮子位置逐项完全相同。种子 0 的零误差成功路径也在两次重放中成功，阶段位置逐项相同。这支持“规划输出变化是当前重复性问题的重要上游来源”；尚未证明规划器内部哪一环节产生差异，也不能以有限重放证明物理仿真在所有情况下严格确定。

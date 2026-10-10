@@ -920,6 +920,7 @@ class Base_Task(gym.Env):
         left_n_step = left_result["position"].shape[0] if left_success else 0
         right_n_step = right_result["position"].shape[0] if right_success else 0
 
+        step_observer = getattr(self, "simulation_step_observer", None)
         while now_left_id < left_n_step or now_right_id < right_n_step:
             # set the joint positions and velocities for move group joints only.
             # The others are not the responsibility of the planner
@@ -942,6 +943,8 @@ class Base_Task(gym.Env):
                 now_right_id += 1
 
             self.scene.step()
+            if step_observer is not None:
+                step_observer()
             if self.render_freq and i % self.render_freq == 0:
                 self._update_render()
                 self.viewer.render()
@@ -1504,6 +1507,7 @@ class Base_Task(gym.Env):
         if right_gripper is not None:
             max_control_len = max(max_control_len, right_gripper["num_step"])
 
+        step_observer = getattr(self, "simulation_step_observer", None)
         for control_idx in range(max_control_len):
 
             if (left_arm is not None and control_idx < left_arm["position"].shape[0]):  # control left arm
@@ -1535,6 +1539,8 @@ class Base_Task(gym.Env):
                 )  # TODO
 
             self.scene.step()
+            if step_observer is not None:
+                step_observer()
 
             if self.render_freq and control_idx % self.render_freq == 0:
                 self._update_render()

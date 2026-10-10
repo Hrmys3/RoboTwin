@@ -12,6 +12,7 @@ import yaml
 from envs.place_bread_basket import place_bread_basket
 from vpc.place_bread_basket import execute
 from vpc.scene import OracleSceneProvider
+from vpc.step_trace import StepTrace
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -44,7 +45,7 @@ def load_config():
 
 
 def trial(config, seed, sigma_mm, noise_target="all", noise_phase="all",
-          repeat_index=0):
+          repeat_index=0, trace_stages=(), trace_stride=25):
     task = place_bread_basket()
     result = {"seed": seed, "sigma_mm": sigma_mm, "noise_target": noise_target,
               "noise_phase": noise_phase, "repeat_index": repeat_index,
@@ -63,9 +64,13 @@ def trial(config, seed, sigma_mm, noise_target="all", noise_phase="all",
             "breads": [actor.configured_position_error_m for actor in provider.breads],
             "basket": provider.basket.configured_position_error_m,
         }
+        trace = StepTrace(task, trace_stages, stride=trace_stride)
+        if trace_stages:
+            result["step_trace"] = trace.records
         initial_basket_xy = task.breadbasket.get_pose().p[:2].copy()
 
         def record_stage(name):
+            trace.end()
             basket_xyz = task.breadbasket.get_pose().p
             bread_xyz = [actor.get_pose().p for actor in task.bread]
             result["stages"].append({
@@ -98,7 +103,8 @@ def trial(config, seed, sigma_mm, noise_target="all", noise_phase="all",
             })
 
         record_stage("initial")
-        result["branch"] = execute(task, provider, on_stage=record_stage)
+        result["branch"] = execute(task, provider, on_stage=record_stage,
+                                   on_stage_start=trace.begin)
         result["plan_success"] = bool(task.plan_success)
         result["final_state"] = {
             "bread_xyz": [actor.get_pose().p.tolist() for actor in task.bread],
@@ -130,12 +136,16 @@ def main():
     parser.add_argument("--noise-phases", nargs="+", default=["all"],
                         choices=["all", "grasp", "place", "none"])
     parser.add_argument("--repeats", type=int, default=1)
+    parser.add_argument("--trace-stages", nargs="+", default=[])
+    parser.add_argument("--trace-stride", type=int, default=25)
     parser.add_argument("--output", type=Path, default=ROOT / "vpc_results" / "oracle.jsonl")
     args = parser.parse_args()
     if any(value < 0 for value in args.sigmas_mm):
         parser.error("sigmas-mm must be nonnegative")
     if args.repeats < 1:
         parser.error("repeats must be positive")
+    if args.trace_stride < 1:
+        parser.error("trace-stride must be positive")
     config = load_config()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8") as output:
@@ -147,7 +157,8 @@ def main():
                         phase_order = args.noise_phases[offset:] + args.noise_phases[:offset]
                         for noise_phase in phase_order:
                             result = trial(config, seed, sigma_mm, noise_target,
-                                           noise_phase, repeat_index)
+                                           noise_phase, repeat_index,
+                                           args.trace_stages, args.trace_stride)
                             line = json.dumps(result, ensure_ascii=False)
                             print(
                                 json.dumps({key: result.get(key) for key in

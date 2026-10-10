@@ -8,16 +8,20 @@ targets, not merely a logged scene description.
 from envs.utils.action import ArmTag
 
 
-def execute(task, provider, on_stage=None):
+def execute(task, provider, on_stage=None, on_stage_start=None):
     breads = provider.breads
     basket = provider.basket
     if not breads:
         raise ValueError("scene contains no bread")
 
     def move(stage, *actions):
-        task.move(*actions)
-        if on_stage is not None:
-            on_stage(stage)
+        if on_stage_start is not None:
+            on_stage_start(stage, actions)
+        try:
+            task.move(*actions)
+        finally:
+            if on_stage is not None:
+                on_stage(stage)
 
     def place_one(index, first):
         provider.set_phase("grasp")
