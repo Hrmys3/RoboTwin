@@ -70,16 +70,22 @@ class EstimatedActor(Actor):
 class OracleSceneProvider:
     """Read privileged poses; optionally apply fixed per-object position errors."""
 
-    def __init__(self, task, position_sigma_m: float, seed: int):
+    def __init__(self, task, position_sigma_m: float, seed: int, noise_target: str = "all"):
         if position_sigma_m < 0:
             raise ValueError("position_sigma_m must be nonnegative")
+        if noise_target not in {"all", "bread", "basket", "none"}:
+            raise ValueError(f"invalid noise_target: {noise_target}")
         rng = np.random.default_rng(seed)
+        # Draw every object's noise in every condition to keep trials paired.
+        bread_errors = [rng.normal(0, position_sigma_m, 3) for _ in task.bread]
+        basket_error = rng.normal(0, position_sigma_m, 3)
         self.breads = tuple(
-            EstimatedActor(actor, rng.normal(0, position_sigma_m, 3))
-            for actor in task.bread
+            EstimatedActor(actor, error if noise_target in {"all", "bread"} else np.zeros(3))
+            for actor, error in zip(task.bread, bread_errors)
         )
         self.basket = EstimatedActor(
-            task.breadbasket, rng.normal(0, position_sigma_m, 3)
+            task.breadbasket,
+            basket_error if noise_target in {"all", "basket"} else np.zeros(3),
         )
         self.task = task
 

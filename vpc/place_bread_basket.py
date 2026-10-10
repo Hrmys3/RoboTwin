@@ -8,23 +8,28 @@ targets, not merely a logged scene description.
 from envs.utils.action import ArmTag
 
 
-def execute(task, provider):
+def execute(task, provider, on_stage=None):
     breads = provider.breads
     basket = provider.basket
     if not breads:
         raise ValueError("scene contains no bread")
 
+    def move(stage, *actions):
+        task.move(*actions)
+        if on_stage is not None:
+            on_stage(stage)
+
     def place_one(index, first):
         arm = ArmTag("right" if breads[index].get_pose().p[0] > 0 else "left")
-        task.move(task.grasp_actor(breads[index], arm_tag=arm, pre_grasp_dis=0.07))
-        task.move(task.move_by_displacement(arm_tag=arm, z=0.1, move_axis="arm"))
+        move(f"bread_{index}_grasp", task.grasp_actor(breads[index], arm_tag=arm, pre_grasp_dis=0.07))
+        move(f"bread_{index}_lift", task.move_by_displacement(arm_tag=arm, z=0.1, move_axis="arm"))
         target = basket.get_functional_point(0)
-        task.move(task.place_actor(breads[index], arm_tag=arm, target_pose=target,
-                                   constrain="free", pre_dis=0.12))
+        move(f"bread_{index}_place", task.place_actor(breads[index], arm_tag=arm,
+                                                     target_pose=target, constrain="free", pre_dis=0.12))
         if first:
-            task.move(task.move_by_displacement(arm_tag=arm, z=0.15, move_axis="arm"))
+            move(f"bread_{index}_retreat", task.move_by_displacement(arm_tag=arm, z=0.15, move_axis="arm"))
         else:
-            task.move(task.open_gripper(arm_tag=arm))
+            move(f"bread_{index}_release", task.open_gripper(arm_tag=arm))
 
     if len(breads) == 1:
         place_one(0, True)
@@ -37,19 +42,19 @@ def execute(task, provider):
         return "same_side"
 
     left = 0 if breads[0].get_pose().p[0] < 0 else 1
-    task.move(
+    move("dual_grasp",
         task.grasp_actor(breads[left], arm_tag="left", pre_grasp_dis=0.05),
         task.grasp_actor(breads[left ^ 1], arm_tag="right", pre_grasp_dis=0.07),
     )
-    task.move(
+    move("dual_lift",
         task.move_by_displacement(arm_tag="left", z=0.05, move_axis="arm"),
         task.move_by_displacement(arm_tag="right", z=0.05, move_axis="arm"),
     )
     target = basket.get_functional_point(0)
-    task.move(task.place_actor(breads[left], arm_tag="left", target_pose=target,
-                               constrain="free", pre_dis=0.13))
-    task.move(task.move_by_displacement(arm_tag="left", z=0.1, move_axis="arm"))
-    task.move(
+    move("left_place", task.place_actor(breads[left], arm_tag="left", target_pose=target,
+                                        constrain="free", pre_dis=0.13))
+    move("left_retreat", task.move_by_displacement(arm_tag="left", z=0.1, move_axis="arm"))
+    move("right_place_and_left_return",
         task.back_to_origin(arm_tag="left"),
         task.place_actor(breads[left ^ 1], arm_tag="right", target_pose=target,
                          constrain="free", pre_dis=0.13, dis=0.05),

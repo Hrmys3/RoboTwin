@@ -1,4 +1,4 @@
-# place_bread_basket VPC 第一阶段
+# place_bread_basket VPC 仿真诊断
 
 本阶段先测仿真真值位姿下的规划控制上限，再测位姿估计误差的容忍度。此处的“oracle”从仿真读取面包和篮子位姿、模型编号及物体局部抓取点；它还不是视觉检测器。
 
@@ -15,4 +15,16 @@ python -m scripts.vpc_oracle --seeds 0 2 3 --sigmas-mm 0 5 10 20 --output vpc_re
 
 该程序不会采集演示数据或训练模型。后续阶段需要让相机模块输出同一场景字段，加入物体尺寸/遮挡不确定性、闭环重定位与失败恢复，并在更多随机种子上统计置信区间。当前小样本结果只能做接口及趋势检查。
 
-已验证的 3 个双臂种子（0、2、3）在 0/5/10/20 mm 下分别成功 3/3、2/3、1/3、1/3；额外的同侧单臂种子 5 在 0/5 mm 下均成功。种子 2 的 5 mm 回合中运动规划成功，但最后一块面包和篮子都离开桌面；需要动作阶段日志或视频才能确定最早的接触失误。这些数字只是小样本实测，不能推断总体成功率。
+已验证的 3 个双臂种子（0、2、3）在 0/5/10/20 mm 下分别成功 3/3、2/3、1/3、1/3；额外的同侧单臂种子 5 在 0/5 mm 下均成功。这些数字只是小样本实测，不能推断总体成功率。
+
+## 分对象扰动和阶段日志
+
+`--noise-targets` 支持 `all`、`bread`、`basket`、`none`。相同任务种子和标准差下，四组先采样相同的面包与篮子误差向量，再将未选择的对象误差置零，因此对照保持配对。`none` 是同场景真值参照。`stages` 在每组高层动作**结束后**记录真实物体位置、篮子水平漂移、面包到篮子中心的水平距离、机械臂末端位姿、夹爪状态、规划标志和动作计数；这不是逐仿真帧的接触日志。
+
+```bash
+conda activate RoboTwin
+python -m scripts.vpc_oracle --seeds 2 --sigmas-mm 5 --noise-targets all bread basket none --output vpc_results/seed2_5mm_ablation.jsonl
+python -m scripts.vpc_oracle --seeds 0 --sigmas-mm 10 --noise-targets all bread basket none --output vpc_results/seed0_10mm_ablation.jsonl
+```
+
+种子 2、5 mm：只有 `all` 失败；其 `left_place` 阶段结束时篮子已漂移约 537 mm，`bread` 和 `basket` 两个单独扰动条件都成功。可定位到左臂放置阶段，但该阶段内部首次接触仍未记录。种子 0、10 mm：`all` 和 `bread` 失败；双臂抬起后，面包 0 的高度仍约 0.741 m，`basket` 和 `none` 条件则将它抬至约 0.789 m。这表明面包位姿误差在该场景中导致抓取未带起面包。两例对应不同失效机制，不能据此估计整体失效率或泛化到其他种子。
